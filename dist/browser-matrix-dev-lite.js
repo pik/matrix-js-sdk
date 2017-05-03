@@ -3020,12 +3020,16 @@ MatrixClient.prototype.resetNotifTimelineSet = function() {
  * @return {module:client.Promise} Resolves: Room object
  * @return {module:http-api.MatrixError} Rejects: with an error response.
  */
-MatrixClient.prototype.peekInRoom = function(roomId, limit) {
+MatrixClient.prototype.peekInRoom = function(roomId, initialSyncLimit, peekLimit) {
     if (this._peekSync) {
         this._peekSync.stopPeeking();
     }
     this._peekSync = new SyncApi(this, this._clientOpts);
-    return this._peekSync.peek(roomId, limit);
+    if (peekLimit === undefined) {
+        peekLimit = 20;
+    }
+    this._peekSync._peekLimit = peekLimit;
+    return this._peekSync.peek(roomId, initialSyncLimit);
 };
 
 /**
@@ -12087,6 +12091,9 @@ SyncApi.prototype.peekInfo = function() {
  * @param {string} token from= token
  */
 SyncApi.prototype._peekPoll = function(roomId, token) {
+    if (token === undefined) {
+        token = 's1';
+    }
     this._peekSyncToken = token;
     if (this._peekRoomId !== roomId) {
         debuglog("Stopped peeking in room %s", roomId);
@@ -12098,7 +12105,9 @@ SyncApi.prototype._peekPoll = function(roomId, token) {
     this.client._http.authedRequest(undefined, "GET", "/events", {
         room_id: roomId,
         timeout: 30 * 1000,
-        from: token
+        from: token,
+        dir: 'f',
+        limit: this._peekLimit
     }, undefined, 50 * 1000).done(function(res) {
 
         // We have a problem that we get presence both from /events and /sync
