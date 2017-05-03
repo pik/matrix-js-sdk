@@ -430,7 +430,7 @@ MatrixBaseApis.prototype.roomInitialSync = function(roomId, limit, callback) {
     var path = utils.encodeUri("/rooms/$roomId/initialSync",
         {$roomId: roomId}
     );
-    if (!limit) {
+    if (limit === undefined) {
         limit = 30;
     }
     return this._http.authedRequest(
